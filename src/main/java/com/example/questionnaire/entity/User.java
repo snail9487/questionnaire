@@ -1,5 +1,7 @@
 package com.example.questionnaire.entity;
 
+import java.time.LocalDateTime;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -9,10 +11,13 @@ import javax.persistence.Table;
 @Table(name = "user")
 public class User {
 
+	@Id
+	@Column(name = "num")
+	private int num;
+	
 	@Column(name = "name")
 	private String name;
 
-	@Id
 	@Column(name = "phone_number")
 	private String phoneNumber;
 	
@@ -22,26 +27,29 @@ public class User {
 	@Column(name = "age")
 	private int age;
 	
-	@Column(name = "q_id")
-	private int qId;
+	@Column(name = "qu_id")
+	private int quId;
 	
 	@Column(name = "qn_id")
 	private int qnId;
 	
 	@Column(name = "ans")
 	private String ans;
+	
+	@Column(name = "date_time")
+	private LocalDateTime dateTime;
 
 	public User() {
 		super();
 	}
 
-	public User(String name, String phoneNumber, String email, int age, int qId, int qnId, String ans) {
+	public User(String name, String phoneNumber, String email, int age, int quId, int qnId, String ans) {
 		super();
 		this.name = name;
 		this.phoneNumber = phoneNumber;
 		this.email = email;
 		this.age = age;
-		this.qId = qId;
+		this.quId = quId;
 		this.qnId = qnId;
 		this.ans = ans;
 	}
@@ -78,12 +86,12 @@ public class User {
 		this.age = age;
 	}
 
-	public int getqId() {
-		return qId;
+	public int getquId() {
+		return quId;
 	}
 
-	public void setqId(int qId) {
-		this.qId = qId;
+	public void setquId(int quId) {
+		this.quId = quId;
 	}
 
 	public int getQnId() {
@@ -100,6 +108,22 @@ public class User {
 
 	public void setAns(String ans) {
 		this.ans = ans;
+	}
+
+	public int getNum() {
+		return num;
+	}
+
+	public void setNum(int num) {
+		this.num = num;
+	}
+
+	public LocalDateTime getDateTime() {
+		return dateTime;
+	}
+
+	public void setDateTime(LocalDateTime dateTime) {
+		this.dateTime = dateTime;
 	}
 	
 	

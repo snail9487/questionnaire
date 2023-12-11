@@ -57,6 +57,15 @@ public class Questionnaire {
 		this.endDate = endDate;
 	}
 	
+	
+	
+	public Questionnaire(int id, String title, boolean published) {
+		super();
+		this.id = id;
+		this.title = title;
+		this.published = published;
+	}
+
 	public int getId() {
 		return id;
 	}

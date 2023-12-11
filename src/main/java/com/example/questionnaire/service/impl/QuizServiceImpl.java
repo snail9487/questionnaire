@@ -1,12 +1,16 @@
 package com.example.questionnaire.service.impl;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -17,12 +21,14 @@ import com.example.questionnaire.entity.Questionnaire;
 import com.example.questionnaire.repository.QuestionDao;
 import com.example.questionnaire.repository.QuestionnaireDao;
 import com.example.questionnaire.service.ifs.QuizService;
+import com.example.questionnaire.vo.QnQuVo;
 import com.example.questionnaire.vo.QuestionRes;
 import com.example.questionnaire.vo.QuestionnaireRes;
 import com.example.questionnaire.vo.QuizRequest;
 import com.example.questionnaire.vo.QuizResponse;
 import com.example.questionnaire.vo.QuizVo;
 
+@EnableScheduling
 @Service
 public class QuizServiceImpl implements QuizService{
 	
@@ -71,6 +77,7 @@ public class QuizServiceImpl implements QuizService{
 	}
 
 
+	@Transactional
 	@Override
 	public QuizResponse update(QuizRequest req) {
 		QuizResponse checkResult = checkParam(req);
@@ -115,6 +122,7 @@ public class QuizServiceImpl implements QuizService{
 	}
 
 
+	@Transactional
 	@Override
 	public QuizResponse deleteQuestionnaire(List<Integer> qnIdList) {
 		List<Questionnaire> qnList = qnDao.findByIdIn(qnIdList);
@@ -133,10 +141,15 @@ public class QuizServiceImpl implements QuizService{
 	}
 
 
+	@Transactional
 	@Override
 	public QuizResponse deleteQuestion(int qnId, List<Integer> quIdList) {
 		Optional<Questionnaire> qnOp = qnDao.findById(qnId);
-		if(!qnOp.isEmpty() && (!qnOp.get().isPublished() || (qnOp.get().isPublished() && LocalDate.now().isBefore(qnOp.get().getStartDate())))) {
+		if(qnOp.isEmpty()) {
+			return new QuizResponse(RtnCode.SUCCESSFUL);
+		}
+		Questionnaire qn = qnOp.get();
+		if(!qn.isPublished() || (qn.isPublished() && LocalDate.now().isBefore(qn.getStartDate()))) {
 			//quDao.deleteAllByQuIdIn(quIdList);
 			quDao.deleteAllByQnIdAndQuIdIn(qnId , quIdList);
 		}
@@ -144,23 +157,28 @@ public class QuizServiceImpl implements QuizService{
 	}
 
 
+//	@Cacheable(cacheNames = "search",
+//			key = "#title.concat('-')",
+//			unless = "")
 	@Override
 	public QuizResponse search(String title, LocalDate startDate, LocalDate endDate) {
 //		if(startDate == null) {
-//		startDate = LocalDate.of(1971, 1, 1);
-//	}
-//	if(endDate == null) {
-//		endDate = LocalDate.of(2099, 12, 31);
-//	}
+//			startDate = LocalDate.of(1971, 1, 1);
+//		}
+//		if(endDate == null) {
+//			endDate = LocalDate.of(2099, 12, 31);
+//		}
 //		if(!StringUtils.hasText(title)) {
 //			title = "";
 //		}
 		title = StringUtils.hasText(title) ? title : "";
 		startDate = startDate != null ? startDate : LocalDate.of(1971, 1, 1);
 		endDate = endDate != null ? endDate : LocalDate.of(2099, 12, 31);
-
 		
 		List<Questionnaire> qnList = qnDao.findByTitleContainingAndStartDateGreaterThanEqualAndEndDateLessThanEqual(title, startDate, endDate);
+		if(qnList.isEmpty()) {
+			return new QuizResponse(null, RtnCode.SUCCESSFUL);
+		}
 		List<Integer> qnIds = new ArrayList<>();
 		for(Questionnaire qn : qnList) {
 			qnIds.add(qn.getId());
@@ -182,6 +200,42 @@ public class QuizServiceImpl implements QuizService{
 		return new QuizResponse(quizVoList, RtnCode.SUCCESSFUL);
 	}
 
+	@Override
+	public QuizResponse search1(String title, LocalDate startDate, LocalDate endDate, boolean isAll) {
+		title = StringUtils.hasText(title) ? title : "";
+		startDate = startDate != null ? startDate : LocalDate.of(1971, 1, 1);
+		endDate = endDate != null ? endDate : LocalDate.of(2099, 12, 31);
+		
+		List<Questionnaire> qnList = new ArrayList<>();
+		if(!isAll) {
+			qnList = qnDao.findByTitleContainingAndStartDateGreaterThanEqualAndEndDateLessThanEqualAndPublishedTrue(title, startDate, endDate);
+		}
+		else {
+			qnList = qnDao.findByTitleContainingAndStartDateGreaterThanEqualAndEndDateLessThanEqual(title, startDate, endDate);
+		}
+		if(qnList.isEmpty()) {
+			return new QuizResponse(null, RtnCode.SUCCESSFUL);
+		}
+		List<Integer> qnIds = new ArrayList<>();
+		for(Questionnaire qn : qnList) {
+			qnIds.add(qn.getId());
+		}
+		List<Question> quList = quDao.findAllByQnIdIn(qnIds);
+		List<QuizVo> quizVoList = new ArrayList<>();
+		for(Questionnaire qn : qnList) {
+			QuizVo vo = new QuizVo();
+			vo.setQuestionnaire(qn);
+			List<Question> questionList = new ArrayList<>();
+			for(Question qu : quList) {
+				if (qu.getQnId() == qn.getId()) {
+					questionList.add(qu);
+				}
+			}
+			vo.setQuestionList(questionList);
+			quizVoList.add(vo);
+		}
+		return new QuizResponse(quizVoList, RtnCode.SUCCESSFUL);
+	}
 
 	@Override
 	public QuestionnaireRes searchQuestionnaireList(String title, LocalDate startDate, LocalDate endDate,  boolean isAll) {
@@ -208,6 +262,24 @@ public class QuizServiceImpl implements QuizService{
 		List<Question> quList = quDao.findAllByQnIdIn(Arrays.asList(qnId));
 		return new QuestionRes(quList, RtnCode.SUCCESSFUL);
 	}
+
+
+	@Override
+	public QuizResponse searchFuzzy(String title, LocalDate startDate, LocalDate endDate) {
+		 
+		List<QnQuVo> res = qnDao.selectFuzzy(title, startDate, endDate);
+		return new QuizResponse(null, res, RtnCode.SUCCESSFUL);
+	}
+
+	
+	//排程
+	//				   秒分時日月周 (周1-7 = Sun-Sat)
+	@Scheduled(cron = "0/5 * 14 * * * ")
+	public void schedule() {
+		System.out.println(LocalDateTime.now());
+	}
+
+	
 	
 	
 }

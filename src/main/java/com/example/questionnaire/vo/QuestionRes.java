@@ -28,6 +28,16 @@ public class QuestionRes {
 	public RtnCode getRtnCode() {
 		return rtnCode;
 	}
+
+	public void setQuestionList(List<Question> questionList) {
+		this.questionList = questionList;
+	}
+
+	public void setRtnCode(RtnCode rtnCode) {
+		this.rtnCode = rtnCode;
+	}
+	
+	
 	
 	
 }

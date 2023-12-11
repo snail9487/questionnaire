@@ -28,6 +28,15 @@ public class QuestionnaireRes {
 	public RtnCode getRtnCode() {
 		return rtnCode;
 	}
+
+	public void setQuestionnaireList(List<Questionnaire> questionnaireList) {
+		this.questionnaireList = questionnaireList;
+	}
+
+	public void setRtnCode(RtnCode rtnCode) {
+		this.rtnCode = rtnCode;
+	}
+	
 	
 	
 
